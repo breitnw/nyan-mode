@@ -91,6 +91,12 @@ reapply them immediately."
          (nyan-refresh))
   :group 'nyan)
 
+(defconst nyan-animation-ascent 75
+  "The ascent at which to draw the animating nyan.")
+
+(defconst nyan-static-ascent 75
+  "The ascent at which to draw the static nyan.")
+
 (defvar nyan-animation-timer nil)
 
 (defun nyan--is-animating-p ()
@@ -124,7 +130,7 @@ informations from small windows."
 (defcustom nyan-wavy-trail nil
   "If enabled, Nyan Cat's rainbow trail will be wavy."
   :type '(choice (const :tag "Enabled" t)
-                 (const :tag "Disabled" nil))
+          (const :tag "Disabled" nil))
   :set (lambda (sym val)
          (set-default sym val)
          (nyan-refresh))
@@ -144,7 +150,7 @@ Minimum of 3 units are required for Nyan Cat."
   "Enable animation for Nyan Cat.
 This can be t or nil."
   :type '(choice (const :tag "Enabled" t)
-                 (const :tag "Disabled" nil))
+          (const :tag "Disabled" nil))
   ;; FIXME: Starting an animation timer on defcustom isn't a good idea; this needs to, at best, maybe start/stop a timer iff the mode is on,
   ;; otherwise just set a flag. -- Jacek Złydach, 2020-05-26
   :set (lambda (sym val)
@@ -162,26 +168,26 @@ This can be t or nil."
 
 ;;; Load images of Nyan Cat an it's rainbow.
 (defvar nyan-cat-image (if (image-type-available-p 'xpm)
-                           (create-image nyan-cat-face-image 'xpm nil :ascent 'center)))
+                           (create-image nyan-cat-face-image 'xpm nil :ascent nyan-static-ascent)))
 
 (defvar nyan-animation-frames (if (image-type-available-p 'xpm)
                                   (mapcar (lambda (id)
                                             (create-image (concat nyan-directory (format "img/nyan-frame-%d.xpm" id))
-                                                          'xpm nil :ascent 95))
+                                                          'xpm nil :ascent nyan-animation-ascent))
                                           '(1 2 3 4 5 6))))
 (defvar nyan-current-frame 0)
 
 (defconst nyan-cat-face [
-                          ["[]*" "[]#"]
-                          ["(*^ｰﾟ)" "( ^ｰ^)" "(^ｰ^ )" "(ﾟｰ^*)"]
-                          ["(´ω｀三 )" "( ´ω三｀ )" "( ´三ω｀ )" "( 三´ω｀)"
-                           "( 三´ω｀)" "( ´三ω｀ )" "( ´ω三｀ )" "(´ω｀三 )"]
-                          ["(´д｀;)" "( ´д`;)" "( ;´д`)" "(;´д` )"]
-                          ["(」・ω・)」" "(／・ω・)／" "(」・ω・)」" "(／・ω・)／"
-                           "(」・ω・)」" "(／・ω・)／" "(」・ω・)」" "＼(・ω・)／"]
-                          ["(＞ワ＜三　　　)" "(　＞ワ三＜　　)"
-                           "(　　＞三ワ＜　)" "(　　　三＞ワ＜)"
-                           "(　　＞三ワ＜　)" "(　＞ワ三＜　　)"]])
+                         ["[]*" "[]#"]
+                         ["(*^ｰﾟ)" "( ^ｰ^)" "(^ｰ^ )" "(ﾟｰ^*)"]
+                         ["(´ω｀三 )" "( ´ω三｀ )" "( ´三ω｀ )" "( 三´ω｀)"
+                          "( 三´ω｀)" "( ´三ω｀ )" "( ´ω三｀ )" "(´ω｀三 )"]
+                         ["(´д｀;)" "( ´д`;)" "( ;´д`)" "(;´д` )"]
+                         ["(」・ω・)」" "(／・ω・)／" "(」・ω・)」" "(／・ω・)／"
+                          "(」・ω・)」" "(／・ω・)／" "(」・ω・)」" "＼(・ω・)／"]
+                         ["(＞ワ＜三　　　)" "(　＞ワ三＜　　)"
+                          "(　　＞三ワ＜　)" "(　　　三＞ワ＜)"
+                          "(　　＞三ワ＜　)" "(　＞ワ三＜　　)"]])
 
 (defun nyan-toggle-wavy-trail ()
   "Toggle the trail to look more like the original Nyan Cat animation."
@@ -199,11 +205,12 @@ This can be t or nil."
 
 (defun nyan-wavy-rainbow-ascent (number)
   (if (nyan--is-animating-p)
-      (min 100 (+ 90
-                  (* 3 (abs (- (/ 6 2)
-                               (% (+ number nyan-current-frame)
-                                  6))))))
-    (if (zerop (% number 2)) 80 'center)))
+      (+ nyan-animation-ascent
+         (min 10
+              (* 3 (abs (- (/ 6 2)
+                           (% (+ number nyan-current-frame)
+                              6))))))
+    (if (zerop (% number 2)) nyan-static-ascent (+ nyan-static-ascent 6))))
 
 (defun nyan-number-of-rainbows ()
   (round (/ (* (round (* 100
@@ -261,8 +268,8 @@ This can be t or nil."
                                       (if xpm-support
                                           (propertize "|"
                                                       'display (create-image nyan-rainbow-image 'xpm nil :ascent (or (and nyan-wavy-trail
-                                                                                                                            (nyan-wavy-rainbow-ascent number))
-                                                                                                                       (if (nyan--is-animating-p) 95 'center))))
+                                                                                                                          (nyan-wavy-rainbow-ascent number))
+                                                                                                                     (if (nyan--is-animating-p) nyan-animation-ascent nyan-static-ascent))))
                                         "|")
                                       (/ (float number) nyan-bar-length) buffer))))
       (dotimes (number outerspaces)
@@ -270,7 +277,7 @@ This can be t or nil."
                                         (nyan-add-scroll-handler
                                          (if xpm-support
                                              (propertize "-"
-                                                         'display (create-image nyan-outerspace-image 'xpm nil :ascent (if (nyan--is-animating-p) 95 'center)))
+                                                         'display (create-image nyan-outerspace-image 'xpm nil :ascent (if (nyan--is-animating-p) nyan-animation-ascent nyan-static-ascent)))
                                            "-")
                                          (/ (float (+ rainbows nyan-cat-size number)) nyan-bar-length) buffer))))
       ;; Compute Nyan Cat string.
